@@ -1,0 +1,46 @@
+# SwiftPM build artifacts
+.build/
+.swiftpm/
+.swiftpm.xcodeproj/
+*.xcodeproj/
+
+# Swift Package Manager derived data
+DerivedData/
+*.swiftmodule
+*.swiftdoc
+
+# Xcode
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcshareddata/WorkspaceSettings.xcsettings
+
+# macOS artifacts
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.fseventsd
+
+# Built application bundles (regenerated from source)
+AIMonitor.app/
+*.app/
+*.pkg
+
+# Build outputs and release packages
+outputs/
+work/
+
+# Test artifacts
+*.xcresult/
+*.xcresultbundle/
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log

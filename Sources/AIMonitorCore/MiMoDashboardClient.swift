@@ -774,46 +774,24 @@ public struct MiMoDashboardClient: Sendable {
                 merged.append(group[0])
                 continue
             }
-            let hasCost = group.contains { $0.cost > 0 }
-            let hasTokens = group.contains { $0.totalTokens > 0 }
-            if hasCost && hasTokens {
-                let bestCost = group.max { $0.cost < $1.cost }!
-                let bestTokens = group.max { $0.totalTokens < $1.totalTokens }!
-                let prompt = max(bestCost.promptTokens, bestTokens.promptTokens)
-                let completion = max(bestCost.completionTokens, bestTokens.completionTokens)
-                let cache = max(bestCost.cacheHitTokens, bestTokens.cacheHitTokens)
-                let total = max(bestCost.totalTokens, bestTokens.totalTokens)
+            let totalPrompt = group.map { $0.promptTokens }.reduce(0, +)
+            let totalCompletion = group.map { $0.completionTokens }.reduce(0, +)
+            let totalCache = group.map { $0.cacheHitTokens }.reduce(0, +)
+            let totalTokens = group.map { $0.totalTokens }.reduce(0, +)
+            let totalCost = group.map { $0.cost }.reduce(0, +)
+            let currency = group.first { $0.currency != "USD" }?.currency ?? (group.first?.currency ?? "CNY")
+            if totalTokens > 0 || totalCost > 0 {
                 merged.append(usageRecord(
                     model: key.model,
                     date: key.day,
-                    promptTokens: prompt,
-                    completionTokens: completion,
-                    cacheHitTokens: cache,
-                    totalTokens: total,
-                    cost: bestCost.cost,
-                    currency: bestCost.currency,
+                    promptTokens: totalPrompt,
+                    completionTokens: totalCompletion,
+                    cacheHitTokens: totalCache,
+                    totalTokens: totalTokens,
+                    cost: totalCost,
+                    currency: currency,
                     sourceFile: sourceFile
                 ))
-            } else {
-                let totalPrompt = group.map { $0.promptTokens }.max() ?? 0
-                let totalCompletion = group.map { $0.completionTokens }.max() ?? 0
-                let totalCache = group.map { $0.cacheHitTokens }.max() ?? 0
-                let totalTokens = group.map { $0.totalTokens }.max() ?? 0
-                let totalCost = group.map { $0.cost }.max() ?? 0
-                let currency = group.first { $0.currency != "USD" }?.currency ?? (group.first?.currency ?? "CNY")
-                if totalTokens > 0 || totalCost > 0 {
-                    merged.append(usageRecord(
-                        model: key.model,
-                        date: key.day,
-                        promptTokens: totalPrompt,
-                        completionTokens: totalCompletion,
-                        cacheHitTokens: totalCache,
-                        totalTokens: totalTokens,
-                        cost: totalCost,
-                        currency: currency,
-                        sourceFile: sourceFile
-                    ))
-                }
             }
         }
         return merged.sorted { $0.date < $1.date }

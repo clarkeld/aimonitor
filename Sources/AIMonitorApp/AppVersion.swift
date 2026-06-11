@@ -6,7 +6,7 @@ enum AppVersion {
            let version = infoDictionary["CFBundleShortVersionString"] as? String {
             return version
         }
-        return "1.0.3"
+        return "1.0.5"
     }()
     
     static let build: String = {
@@ -14,6 +14,6 @@ enum AppVersion {
            let build = infoDictionary["CFBundleVersion"] as? String {
             return build
         }
-        return "3"
+        return "5"
     }()
 }

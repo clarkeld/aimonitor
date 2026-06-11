@@ -66,7 +66,7 @@ final class MonitorViewModel: ObservableObject {
                 let minutes = max(1, self.refreshIntervalMinutes)
                 try? await Task.sleep(for: .seconds(Int64(minutes) * 60))
                 if Task.isCancelled { return }
-                await self.refreshSelectedProvider()
+                await self.refreshAllProviders()
             }
         }
     }
@@ -82,6 +82,12 @@ final class MonitorViewModel: ObservableObject {
 
     func refreshSelectedProvider() async {
         await refresh(provider: selectedProvider)
+    }
+
+    func refreshAllProviders() async {
+        for provider in Provider.allCases {
+            await refresh(provider: provider)
+        }
     }
 
     func refresh(provider: Provider) async {
@@ -100,19 +106,31 @@ final class MonitorViewModel: ObservableObject {
                 }
 
                 var insertedUsage = 0
+                // Dashboard 和 API Key 请求独立处理，任一失败不影响另一方的刷新结果
                 if let dashboardToken, !dashboardToken.isEmpty {
-                    let result = try await deepSeekDashboardClient.fetchCurrentMonth(userToken: dashboardToken)
-                    try store.deleteUsageRecords(provider: .deepseek)
-                    insertedUsage = try store.insertUsageRecords(result.records)
-                    try store.upsertBalances(result.balanceSnapshots)
+                    do {
+                        let result = try await deepSeekDashboardClient.fetchCurrentMonth(userToken: dashboardToken)
+                        try store.deleteUsageRecords(provider: .deepseek)
+                        insertedUsage = try store.insertUsageRecords(result.records)
+                        try store.upsertBalances(result.balanceSnapshots)
+                    } catch {
+                        errorMessage = error.localizedDescription
+                    }
                 }
 
                 if let apiKey, !apiKey.isEmpty {
-                    let snapshots = try await deepSeekClient.fetchBalances(apiKey: apiKey)
-                    try store.upsertBalances(snapshots)
+                    do {
+                        let snapshots = try await deepSeekClient.fetchBalances(apiKey: apiKey)
+                        try store.upsertBalances(snapshots)
+                    } catch {
+                        if errorMessage == nil {
+                            errorMessage = error.localizedDescription
+                        }
+                    }
                 }
 
                 try touchAccount(provider: .deepseek)
+                try reloadLocalState()
                 if dashboardToken?.isEmpty == false {
                     lastImportMessage = "DeepSeek 已刷新，新增 \(insertedUsage) 条用量记录"
                 }

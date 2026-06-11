@@ -183,7 +183,7 @@ public struct DeepSeekDashboardClient: Sendable {
             for costDict in monthlyCosts {
                 if let currency = stringValue(costDict, keys: ["currency"])?.uppercased(),
                    let amount = doubleValue(costDict, keys: ["total_cost", "totalAmount", "total", "amount"]) {
-                    monthlyCostByCurrency[currency] = round(amount * 100) / 100
+                    monthlyCostByCurrency[currency] = round(amount * 1_000_000) / 1_000_000
                 }
             }
         }
@@ -191,7 +191,7 @@ public struct DeepSeekDashboardClient: Sendable {
         if let summaryCurrency = stringValue(summary, keys: ["currency"])?.uppercased(),
            let totalAmount = doubleValue(summary, keys: ["total_cost", "totalCost", "monthly_total", "monthlyCost"]) {
             if monthlyCostByCurrency[summaryCurrency] == nil {
-                monthlyCostByCurrency[summaryCurrency] = round(totalAmount * 100) / 100
+                monthlyCostByCurrency[summaryCurrency] = round(totalAmount * 1_000_000) / 1_000_000
             }
         }
 
@@ -204,16 +204,17 @@ public struct DeepSeekDashboardClient: Sendable {
                 .filter { stringValue($0, keys: ["currency"])?.caseInsensitiveCompare(currency) == .orderedSame }
                 .compactMap { doubleValue($0, keys: ["balance"]) }
                 .reduce(0, +)
-            // 金额四舍五入到 2 位小数，避免 Double 浮点累加误差
-            let total = round((toppedUp + granted) * 100) / 100
+            // 金额四舍五入到 6 位小数，避免 Double 浮点累加误差（如 0.1 + 0.2 = 0.30000000000000004）
+            // 同时保留 DeepSeek token 计费的高精度（token 计费可精确到小数点后 6 位）
+            let total = round((toppedUp + granted) * 1_000_000) / 1_000_000
             let authoritativeMonthlyCost = monthlyCostByCurrency[currency]
             guard total > 0 || !normalWallets.isEmpty || !bonusWallets.isEmpty || authoritativeMonthlyCost != nil else { return nil }
             return BalanceSnapshot(
                 provider: .deepseek,
                 currency: currency,
                 totalBalance: total,
-                grantedBalance: round(granted * 100) / 100,
-                toppedUpBalance: round(toppedUp * 100) / 100,
+                grantedBalance: round(granted * 1_000_000) / 1_000_000,
+                toppedUpBalance: round(toppedUp * 1_000_000) / 1_000_000,
                 creditTotal: intOrDoubleValue(summary, keys: ["current_token"]),
                 creditUsed: intOrDoubleValue(summary, keys: ["monthly_token_usage", "monthly_usage"]),
                 creditRemaining: intOrDoubleValue(summary, keys: ["total_available_token_estimation"]),
@@ -353,8 +354,8 @@ public struct DeepSeekDashboardClient: Sendable {
                 "amount",
                 "cost"
             ]) ?? sumUsageCosts(values)
-            // cost 四舍五入到 2 位小数（1 分），与平台计费单位一致
-            return UsageEntry(model: model, date: date, cost: round(cost * 100) / 100)
+            // cost 四舍五入到 6 位小数，避免 IEEE 754 浮点误差，同时保留 DeepSeek token 计费精度
+            return UsageEntry(model: model, date: date, cost: round(cost * 1_000_000) / 1_000_000)
         }
     }
 

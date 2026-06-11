@@ -18,7 +18,7 @@ struct AIMonitorApp: App {
         MenuBarExtra("AI Monitor", systemImage: "chart.bar.xaxis") {
             MonitorPanelView()
                 .environmentObject(model)
-                .frame(width: 360, height: 650)
+                .frame(width: 360, height: 660)
         }
         .menuBarExtraStyle(.window)
 
